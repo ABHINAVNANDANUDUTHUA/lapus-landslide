@@ -1,0 +1,16 @@
+{
+  "name": "landslide-detector",
+  "version": "1.0.0",
+  "description": "Landslide Risk Detection System with Frontend and Backend",
+  "private": true,
+  "scripts": {
+    "start:server": "cd landslide-detector--main/server && npm start",
+    "start:client": "cd landslide-detector--main/client && npm run dev",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "build": "cd landslide-detector--main/client && npm run build",
+    "install-all": "npm install && cd landslide-detector--main/server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
