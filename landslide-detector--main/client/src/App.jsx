@@ -32,16 +32,16 @@ function App() {
     const [cooldownRemaining, setCooldownRemaining] = useState(0); // 30-second cooldown timer
 
     const getFrictionDisplay = (res) => {
-        if (!res || !res.prediction || !res.prediction.details) return '—';
-        const details = res.prediction.details;
-        const val = details.friction_angle ?? details.friction ?? null;
-        return val !== null && val !== undefined ? `${val}°` : '—';
+        if (!res || !res.prediction) return '—';
+        // Prefer top-level friction_angle, fall back to details
+        const val = res.prediction.friction_angle ?? res.prediction.details?.friction_angle ?? null;
+        return val !== null && val !== undefined ? `${Number(val).toFixed(1)}°` : '—';
     };
 
     const getRainDisplay = (res) => {
-        if (!res || !res.data) return '—';
-        const d = res.data;
-        const val = (d.rain_current ?? d.precip_real ?? d.rain) ?? null;
+        if (!res || !res.input) return '—';
+        const d = res.input;
+        const val = d.rain_current ?? null;
         return val !== null && val !== undefined ? `${parseFloat(val).toFixed(1)} mm` : '—';
     };
 
@@ -325,22 +325,22 @@ function App() {
                     <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden transition-all duration-500">
                         
                         <div className={`p-5 text-white flex justify-between items-center ${
-                            result.prediction.level === 'High' ? 'bg-red-600' :
-                            result.prediction.level === 'Medium' ? 'bg-orange-500' : 'bg-green-600'
+                            result.prediction.risk_level === 'High' ? 'bg-red-600' :
+                            result.prediction.risk_level === 'Medium' ? 'bg-orange-500' : 'bg-green-600'
                         }`}>
                             <div>
                                 <p className="text-xs uppercase font-bold opacity-80">Risk Level</p>
-                                <h2 className="text-3xl font-bold">{result.prediction.level}</h2>
+                                <h2 className="text-3xl font-bold">{result.prediction.risk_level}</h2>
                                 <p className="text-xs opacity-90 mt-1">
-                                    {getEnvironmentIcon(result.prediction.environment)} {result.prediction.environment}
+                                    {getEnvironmentIcon(result.climate.zone)} {result.climate.zone}
                                 </p>
                             </div>
                             <div className="text-right">
                                 <p className="text-xs opacity-80">Safety Factor</p>
-                                <p className="text-2xl font-mono">{result.prediction.details.FoS.toFixed(2)}</p>
+                                <p className="text-2xl font-mono">{result.prediction.FoS.toFixed(2)}</p>
                                 <p className="text-[10px] opacity-70 mt-1">
-                                    {result.prediction.details.FoS < 1 ? "FAILURE" : 
-                                     result.prediction.details.FoS < 1.5 ? "UNSTABLE" : "STABLE"}
+                                    {result.prediction.FoS < 1 ? "FAILURE" : 
+                                     result.prediction.FoS < 1.5 ? "UNSTABLE" : "STABLE"}
                                 </p>
                             </div>
                         </div>
@@ -349,18 +349,65 @@ function App() {
                             
                             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-lg border-l-4 border-cyan-500">
                                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 flex items-center gap-1">
-                                    <span>🧠</span> AI Analysis
+                                    <span>🧠</span> Analysis Summary
                                 </p>
-                                <p className="text-sm font-medium text-slate-700 leading-relaxed">{result.prediction.reason}</p>
+                                <p className="text-sm font-medium text-slate-700 leading-relaxed">
+                                    FoS: {result.prediction.FoS.toFixed(2)} | 
+                                    Shear Strength: {result.prediction.shear_strength} kPa | 
+                                    Saturation: {result.prediction.saturation_percent}%
+                                </p>
                             </div>
 
-                            {result.prediction.soil_type && (
-                                <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                                    <p className="text-[10px] text-amber-700 uppercase font-bold mb-1">Soil Classification</p>
-                                    <p className="text-lg font-bold text-amber-900">{result.prediction.soil_type}</p>
-                                    <p className="text-xs text-amber-600 mt-1">
-                                        Clay: {result.data.clay.toFixed(0)}% | Sand: {result.data.sand.toFixed(0)}% | Silt: {result.data.silt.toFixed(0)}%
+                            {result.prediction.saturation_percent !== undefined && (
+                                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                    <p className="text-[10px] text-blue-600 uppercase font-bold mb-1">💧 Soil Saturation</p>
+                                    <p className="text-xs text-blue-800">
+                                        {result.prediction.saturation_percent}% saturated
                                     </p>
+                                </div>
+                            )}
+
+                            {result.input.clay !== undefined && (
+                                <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                                    <p className="text-[10px] text-amber-700 uppercase font-bold mb-2">🌍 Soil Composition</p>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-amber-700">Clay</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-24 bg-amber-200 rounded-full h-2">
+                                                    <div 
+                                                        className="bg-amber-700 h-2 rounded-full" 
+                                                        style={{ width: `${result.input.clay}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-xs font-bold text-amber-900 w-8">{result.input.clay.toFixed(0)}%</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-amber-700">Sand</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-24 bg-yellow-200 rounded-full h-2">
+                                                    <div 
+                                                        className="bg-yellow-600 h-2 rounded-full" 
+                                                        style={{ width: `${result.input.sand}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-xs font-bold text-yellow-900 w-8">{result.input.sand.toFixed(0)}%</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-amber-700">Silt</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-24 bg-orange-200 rounded-full h-2">
+                                                    <div 
+                                                        className="bg-orange-600 h-2 rounded-full" 
+                                                        style={{ width: `${result.input.silt}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-xs font-bold text-orange-900 w-8">{result.input.silt.toFixed(0)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -369,11 +416,11 @@ function App() {
                                     {result.isSimulated ? "⚗️ Simulated Weather" : "🌤️ Live Weather"}
                                 </h3>
                                 <div className="grid grid-cols-3 gap-2">
-                                    <StatBox label="Temp" value={`${result.data.temp}°C`} />
-                                    <StatBox label="Humidity" value={`${result.data.humidity}%`} />
-                                    <div className={`p-2 rounded border ${result.isSimulated ? 'bg-cyan-50 border-cyan-300' : 'bg-slate-50 border-slate-200'}`}>
-                                        <p className={`text-[10px] uppercase tracking-wide font-bold ${result.isSimulated ? 'text-cyan-600' : 'text-slate-400'}`}>Rainfall</p>
-                                        <p className={`text-lg font-bold ${result.isSimulated ? 'text-cyan-700' : 'text-slate-700'}`}>{getRainDisplay(result)}</p>
+                                    <StatBox label="Temp" value={`${result.input.temperature}°C`} />
+                                    <StatBox label="Humidity" value={`${result.input.humidity}%`} />
+                                    <div className={`p-2 rounded border ${result.input.rain_current > 0 ? 'bg-cyan-50 border-cyan-300' : 'bg-slate-50 border-slate-200'}`}>
+                                        <p className={`text-[10px] uppercase tracking-wide font-bold ${result.input.rain_current > 0 ? 'text-cyan-600' : 'text-slate-400'}`}>Rainfall</p>
+                                        <p className={`text-lg font-bold ${result.input.rain_current > 0 ? 'text-cyan-700' : 'text-slate-700'}`}>{getRainDisplay(result)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -385,10 +432,10 @@ function App() {
                                 <div className="grid grid-cols-2 gap-2">
                                     <StatBox 
                                         label="Slope Angle" 
-                                        value={`${result.data.slope}°`} 
-                                        warning={result.data.slope > 25}
+                                        value={`${result.input.slope}°`} 
+                                        warning={result.input.slope > 25}
                                     />
-                                    <StatBox label="Elevation" value={`${Math.round(result.data.elevation)}m`} />
+                                    <StatBox label="Elevation" value={`${Math.round(result.input.elevation)}m`} />
                                 </div>
                             </div>
 
@@ -396,25 +443,22 @@ function App() {
                                 <h3 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-1">
                                     🔬 Soil Physics
                                 </h3>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <StatBox label="Cohesion (c)" value={`${result.prediction.details.cohesion} kPa`} />
+                                <div className="grid grid-cols-3 gap-2">
+                                    <StatBox label="Cohesion (c)" value={`${(result.prediction.details?.cohesion ?? result.prediction.details?.cohesion ?? '—')} kPa`} />
                                     <StatBox label="Friction (φ)" value={getFrictionDisplay(result)} />
+                                    <StatBox label="Shear Stress" value={`${result.prediction.shear_stress} kPa`} />
                                     <StatBox 
-                                        label="Shear Strength" 
-                                        value={`${result.prediction.details.shear_strength} kPa`}
-                                        highlight={true}
+                                        label="Saturation" 
+                                        value={`${result.prediction.saturation_percent}%`}
+                                        warning={result.prediction.saturation_percent > 50}
                                     />
                                     <StatBox 
-                                        label="Shear Stress" 
-                                        value={`${result.prediction.details.shear_stress} kPa`}
-                                        warning={parseFloat(result.prediction.details.shear_stress) > parseFloat(result.prediction.details.shear_strength)}
+                                        label="Safety Factor" 
+                                        value={`${result.prediction.FoS.toFixed(2)}`}
+                                        highlight={result.prediction.FoS > 1.5}
+                                        warning={result.prediction.FoS < 1}
                                     />
                                 </div>
-                                {result.prediction.details.depth && (
-                                    <p className="text-[10px] text-slate-500 mt-1">
-                                        Failure depth used: {result.prediction.details.depth} m
-                                    </p>
-                                )}
                             </div>
 
                             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
