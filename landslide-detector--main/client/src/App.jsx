@@ -29,7 +29,7 @@ function App() {
     const [rainValue, setRainValue] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [depth, setDepth] = useState(2.5); // failure depth in meters
-    const [cooldownRemaining, setCooldownRemaining] = useState(0); // 30-second cooldown timer
+    const [cooldownRemaining, setCooldownRemaining] = useState(0); // 2-second cooldown timer
 
     const getFrictionDisplay = (res) => {
         if (!res || !res.prediction) return '—';
@@ -93,8 +93,8 @@ function App() {
                 depth: Number(depth) || 2.5
             });
             setResult(response.data);
-            // Start 5-second cooldown
-            setCooldownRemaining(5);
+            // Start 2-second cooldown
+            setCooldownRemaining(2);
         } catch (error) {
             console.error('Prediction error:', error);
             const errorMsg = error.response?.data?.message || error.message || 'Server Error';
@@ -190,6 +190,12 @@ function App() {
         return icons[env] || "📍";
     };
 
+    const safetyNum = result?.prediction?.FoS ?? null;
+    const safetyStr = safetyNum != null ? safetyNum.toFixed(2) : '—';
+    const envLabel = result?.location_type === 'water' ? 'Water Body' : result?.location_type === 'ice' ? 'Ice/Glacier' : result?.climate?.zone;
+    const envIcon = result?.location_type === 'water' ? '🌊' : result?.location_type === 'ice' ? '❄️' : getEnvironmentIcon(envLabel);
+    const placeInfo = result?.location_info?.place || null;
+
     return (
         <div className="relative h-screen w-screen bg-slate-900 font-sans text-slate-800">
             
@@ -204,7 +210,7 @@ function App() {
                             <div className="w-full bg-yellow-200 rounded-full h-1.5 mt-1">
                                 <div 
                                     className="bg-yellow-500 h-1.5 rounded-full transition-all duration-1000"
-                                    style={{ width: `${(cooldownRemaining / 5) * 100}%` }}
+                                    style={{ width: `${(cooldownRemaining / 2) * 100}%` }}
                                 ></div>
                             </div>
                         </div>
@@ -332,15 +338,14 @@ function App() {
                                 <p className="text-xs uppercase font-bold opacity-80">Risk Level</p>
                                 <h2 className="text-3xl font-bold">{result.prediction.risk_level}</h2>
                                 <p className="text-xs opacity-90 mt-1">
-                                    {getEnvironmentIcon(result.climate.zone)} {result.climate.zone}
+                                    {envIcon} {envLabel} {placeInfo ? `• ${placeInfo}` : ''}
                                 </p>
                             </div>
                             <div className="text-right">
                                 <p className="text-xs opacity-80">Safety Factor</p>
-                                <p className="text-2xl font-mono">{result.prediction.FoS.toFixed(2)}</p>
+                                <p className="text-2xl font-mono">{safetyStr}</p>
                                 <p className="text-[10px] opacity-70 mt-1">
-                                    {result.prediction.FoS < 1 ? "FAILURE" : 
-                                     result.prediction.FoS < 1.5 ? "UNSTABLE" : "STABLE"}
+                                    {safetyNum == null ? 'N/A' : (safetyNum < 1 ? 'FAILURE' : safetyNum < 1.5 ? 'UNSTABLE' : 'STABLE')}
                                 </p>
                             </div>
                         </div>
@@ -454,9 +459,9 @@ function App() {
                                     />
                                     <StatBox 
                                         label="Safety Factor" 
-                                        value={`${result.prediction.FoS.toFixed(2)}`}
-                                        highlight={result.prediction.FoS > 1.5}
-                                        warning={result.prediction.FoS < 1}
+                                        value={`${safetyStr}`}
+                                        highlight={safetyNum != null && safetyNum > 1.5}
+                                        warning={safetyNum != null && safetyNum < 1}
                                     />
                                 </div>
                             </div>
