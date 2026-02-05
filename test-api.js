@@ -32,13 +32,14 @@ const req = http.request(options, (res) => {
       const parsed = JSON.parse(body);
       console.log('\nPARSED RESPONSE:');
       console.log('FoS:', parsed.prediction.details.FoS);
-      console.log('Cohesion:', parsed.prediction.details.cohesion);
-      console.log('Friction Angle:', parsed.prediction.details.friction_angle);
+      console.log('Computed Cohesion:', parsed.prediction.details.computed_cohesion || parsed.prediction.details.cohesion);
+      console.log('Computed Friction Angle:', parsed.prediction.details.computed_friction_angle || parsed.prediction.details.friction_angle);
       console.log('Shear Strength:', parsed.prediction.details.shear_strength);
       console.log('Shear Stress:', parsed.prediction.details.shear_stress);
-      console.log('Clay:', parsed.data.clay);
-      console.log('Sand:', parsed.data.sand);
-      console.log('Silt:', parsed.data.silt);
+      console.log('Clay:', parsed.input.clay);
+      console.log('Sand:', parsed.input.sand);
+      console.log('Silt:', parsed.input.silt);
+      console.log('Saturation %:', parsed.prediction.details.saturation_percent);
     } catch(e) {
       console.log('Failed to parse response:', e.message);
     }
