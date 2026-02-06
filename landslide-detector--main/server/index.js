@@ -290,8 +290,12 @@ const calculateRisk = (f) => {
   const sigma = gamma * z * Math.cos(beta) * Math.cos(beta);
   const tau = gamma * z * Math.sin(beta) * Math.cos(beta);
 
-  // Saturation from recent rainfall (0..1)
-  const saturation = Math.min(Number(f.rain_7day || 0) / 150, 1);
+  // Saturation from humidity + recent rainfall (0..1)
+  // More accurate: combines base moisture from humidity with additional rainfall contribution
+  const humidityFactor = Number(f.humidity || 70) / 100;
+  const baseMoisture = 0.12 + 0.15 * humidityFactor;
+  const rainMoisture = Math.min((f.rain_7day || 0) / 200, 0.6);
+  const saturation = Math.min(baseMoisture + rainMoisture, 1);
 
   // Soil composition (percentages from features)
   const soil = { clay: Number(f.clay || 0), sand: Number(f.sand || 0), silt: Number(f.silt || 0) };

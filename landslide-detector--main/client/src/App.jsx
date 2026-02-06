@@ -449,7 +449,7 @@ function App() {
                                     🔬 Soil Physics
                                 </h3>
                                 <div className="grid grid-cols-3 gap-2">
-                                    <StatBox label="Cohesion (c)" value={`${(result.prediction.details?.cohesion ?? result.prediction.details?.cohesion ?? '—')} kPa`} />
+                                    <StatBox label="Cohesion (c)" value={`${(result.prediction.details?.computed_cohesion ?? '—')} kPa`} />
                                     <StatBox label="Friction (φ)" value={getFrictionDisplay(result)} />
                                     <StatBox label="Shear Stress" value={`${result.prediction.shear_stress} kPa`} />
                                     <StatBox 
